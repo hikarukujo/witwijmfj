@@ -1,0 +1,12 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "AzureWebJobsSecretStorageType": "files",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "LIFE360_BEARER_TOKEN": "rotate-me-and-paste-here-for-local-dev",
+    "LIFE360_CIRCLE_ID": "your-circle-uuid",
+    "LIFE360_MEMBER_ID": "your-member-uuid",
+    "OPENCAGE_API_KEY": "rotate-me-and-paste-here-for-local-dev"
+  }
+}

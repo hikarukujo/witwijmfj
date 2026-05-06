@@ -9,47 +9,50 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
-    permissions:
-       id-token: write
-       contents: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
-      - name: Get Id Token
-        uses: actions/github-script@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get OIDC token
+        uses: actions/github-script@v7
         id: idtoken
         with:
-           script: |
-               const coredemo = require('@actions/core')
-               return await coredemo.getIDToken()
-           result-encoding: string
-      - name: Disable CI checks
-        run: echo "CI=false" >> $GITHUB_ENV
+          script: |
+            const core = require('@actions/core');
+            return await core.getIDToken();
+          result-encoding: string
+
       - name: Build And Deploy
         id: builddeploy
-        env:
-          REACT_APP_OPENCAGE_API_KEY: ${{ secrets.REACT_APP_OPENCAGE_API_KEY }}
-          REACT_APP_BEARER_TOKEN: ${{ secrets.REACT_APP_BEARER_TOKEN }}
+        # NOTE: No REACT_APP_* / VITE_* secrets are passed here on purpose.
+        # The Life360 token and OpenCage key are server-side only and live in
+        # Azure SWA Configuration → Application settings, read at runtime by
+        # the managed Functions in /api.
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_FIELD_059D6E40F }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
+          app_location: "/"
+          api_location: "api"
+          output_location: "build"
           github_id_token: ${{ steps.idtoken.outputs.result }}
-          ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -61,3 +64,4 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: "close"
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_RED_FIELD_059D6E40F }}

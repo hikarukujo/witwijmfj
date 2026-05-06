@@ -1,0 +1,6 @@
+node_modules/
+local.settings.json
+.azurefunctions/
+bin/
+obj/
+*.log
