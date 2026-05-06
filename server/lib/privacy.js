@@ -3,8 +3,8 @@
  *
  * Reduces precision of upstream coordinates BEFORE they leave the server.
  * This is the only thing standing between Life360's street-accurate fix and
- * the public web — the function above caches and returns whatever this
- * returns. If you return the raw lat/lon, you have leaked an exact location.
+ * the public web — the route above caches and returns whatever this returns.
+ * If you return the raw lat/lon, you have leaked an exact location.
  *
  * Input:
  *   { lat: number, lon: number, place: { city, state, country } }
@@ -26,7 +26,7 @@
  *            The default below rounds to 1 decimal — that's a placeholder, not a
  *            recommendation; pick the precision YOU are comfortable publishing.
  */
-function coarsen({ lat, lon, place }) {
+export function coarsen({ lat, lon, place }) {
   const round = (n, decimals) => {
     const f = 10 ** decimals;
     return Math.round(n * f) / f;
@@ -40,5 +40,3 @@ function coarsen({ lat, lon, place }) {
     place,
   };
 }
-
-module.exports = { coarsen };

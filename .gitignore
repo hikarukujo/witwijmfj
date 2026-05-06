@@ -152,12 +152,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Azure Functions local dev
-api/local.settings.json
-api/.azurefunctions/
-api/bin/
-api/obj/
-
 # Vite
 build/
 .vite/
