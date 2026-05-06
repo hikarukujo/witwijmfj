@@ -96,7 +96,7 @@ const App = () => {
         )}
       </header>
       <footer style={{ position: 'fixed', bottom: 0, width: '100%', textAlign: 'center', padding: '10px', background: '#282c34', color: '#fff' }}>
-        &copy; 2023, JMFJ - <a href="https://github.com/hikarukujo/witwijmfj" target="_blank" rel="noopener noreferrer" style={{ color: '#61dafb' }}>GitHub Source</a>
+        &copy; {new Date().getFullYear()}, JMFJ - <a href="https://github.com/hikarukujo/witwijmfj" target="_blank" rel="noopener noreferrer" style={{ color: '#61dafb' }}>GitHub Source</a>
       </footer>
     </div>
   );
