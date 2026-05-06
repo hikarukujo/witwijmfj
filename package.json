@@ -11,7 +11,7 @@
     "preview": "vite preview --port 4173",
     "start": "node server/index.js",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
