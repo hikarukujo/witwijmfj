@@ -1,6 +1,5 @@
-const { app } = require('@azure/functions');
 const initCycleTLS = require('cycletls');
-const { coarsen } = require('../lib/privacy');
+const { coarsen } = require('../shared/privacy');
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const OPENCAGE_TIMEOUT_MS = 10_000;
@@ -22,10 +21,6 @@ function getCycleClient() {
   return cycleClientPromise;
 }
 
-// Chrome 120 desktop on Windows. Cloudflare's bot detector mainly checks that
-// the TLS handshake matches *some* known-browser fingerprint; pairing this
-// with the Life360 mobile-app UA below works because the check is primarily
-// at the handshake layer, not a UA/JA3 cross-reference.
 const CHROME_JA3 = '771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513-21,29-23-24,0';
 const LIFE360_USER_AGENT = 'com.life360.android.safetymapd/KOKO/24.16.0 android/13';
 
@@ -84,39 +79,35 @@ async function fetchOpenCage(context, lat, lon) {
   };
 }
 
-app.http('location', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  route: 'location',
-  handler: async (request, context) => {
-    const now = Date.now();
-    if (cache.payload && now - cache.fetchedAt < CACHE_TTL_MS) {
-      return jsonResponse(200, cache.payload, 'HIT');
-    }
+module.exports = async function (context) {
+  const now = Date.now();
+  if (cache.payload && now - cache.fetchedAt < CACHE_TTL_MS) {
+    context.res = jsonResponse(200, cache.payload, 'HIT');
+    return;
+  }
 
-    if (!inFlight) {
-      inFlight = (async () => {
-        try {
-          const { lat, lon } = await fetchLife360(context);
-          const place = await fetchOpenCage(context, lat, lon);
-          const safe = coarsen({ lat, lon, place });
-          cache = { fetchedAt: Date.now(), payload: safe };
-          return safe;
-        } finally {
-          inFlight = null;
-        }
-      })();
-    }
+  if (!inFlight) {
+    inFlight = (async () => {
+      try {
+        const { lat, lon } = await fetchLife360(context);
+        const place = await fetchOpenCage(context, lat, lon);
+        const safe = coarsen({ lat, lon, place });
+        cache = { fetchedAt: Date.now(), payload: safe };
+        return safe;
+      } finally {
+        inFlight = null;
+      }
+    })();
+  }
 
-    try {
-      const safe = await inFlight;
-      return jsonResponse(200, safe, 'MISS');
-    } catch (err) {
-      context.log(`location handler failed: ${err.message}`);
-      return jsonResponse(502, { error: 'upstream_failure' });
-    }
-  },
-});
+  try {
+    const safe = await inFlight;
+    context.res = jsonResponse(200, safe, 'MISS');
+  } catch (err) {
+    context.log(`location handler failed: ${err.message}`);
+    context.res = jsonResponse(502, { error: 'upstream_failure' });
+  }
+};
 
 function jsonResponse(status, body, cacheStatus) {
   const ok = status >= 200 && status < 300;
