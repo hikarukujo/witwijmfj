@@ -12,3 +12,47 @@
   font-size: calc(10px + 2vmin);
   color: white;
 }
+
+.splash {
+  position: fixed;
+  inset: 0;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 0.8s ease-out;
+}
+
+.splash-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-image {
+  max-width: 80vmin;
+  max-height: 80vmin;
+  transform-origin: center;
+  animation: splash-expand 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes splash-expand {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-image {
+    animation: none;
+  }
+  .splash {
+    transition: opacity 0.2s ease-out;
+  }
+}

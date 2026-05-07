@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import JMFJ from './jmfj.png';
 import './App.css';
 
@@ -13,32 +13,39 @@ const customIcon = new Icon({
 });
 
 const DEFAULT_COORDINATES = [51.505, -0.09];
+const MIN_SPLASH_MS = 5000;
 
 const App = () => {
   const [state, setState] = useState({ status: 'loading', data: null });
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/location', { headers: { accept: 'application/json' } });
+    const minDelay = new Promise((resolve) => setTimeout(resolve, MIN_SPLASH_MS));
+    const fetchLocation = fetch('/api/location', { headers: { accept: 'application/json' } })
+      .then((res) => {
         if (!res.ok) throw new Error(`api responded ${res.status}`);
-        const body = await res.json();
-        if (cancelled) return;
-        setState({ status: 'ready', data: body });
-      } catch (err) {
-        if (cancelled) return;
-        console.error(err);
+        return res.json();
+      })
+      .catch((err) => err);
+
+    Promise.all([fetchLocation, minDelay]).then(([result]) => {
+      if (cancelled) return;
+      if (result instanceof Error) {
+        console.error(result);
         setState({ status: 'error', data: null });
+      } else {
+        setState({ status: 'ready', data: result });
       }
-    })();
+    });
+
     return () => { cancelled = true; };
   }, []);
+
+  const splashHidden = state.status !== 'loading';
 
   return (
     <div className="App">
       <header className="App-header">
-        {state.status === 'loading' && <FontAwesomeIcon icon={faSpinner} spin />}
         {state.status === 'error' && <FontAwesomeIcon icon={faTimes} />}
         {state.status === 'ready' && (
           <div style={{ height: '90vh', width: '100%' }}>
@@ -62,6 +69,9 @@ const App = () => {
           </div>
         )}
       </header>
+      <div className={`splash${splashHidden ? ' splash-hidden' : ''}`} aria-hidden={splashHidden}>
+        <img src="/witwijmfj.png" alt="" className="splash-image" />
+      </div>
       <footer
         style={{
           position: 'fixed',
