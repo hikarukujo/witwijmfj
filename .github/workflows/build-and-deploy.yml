@@ -1,0 +1,75 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGISTRY: azacr1.azurecr.io
+  IMAGE_NAME: witwijmfj
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - id: meta
+        run: echo "tag=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - if: github.event_name != 'pull_request'
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - if: github.event_name != 'pull_request'
+        run: az acr login --name azacr1
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          provenance: false
+          sbom: false
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  bump-platform-infra:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: hikarukujo/platform-infra
+          token: ${{ secrets.PLATFORM_INFRA_PAT }}
+          path: platform-infra
+
+      - working-directory: platform-infra
+        env:
+          NEW_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          FILE=apps/witwijmfj/deployment.yaml
+          sed -i "s|image: azacr1.azurecr.io/witwijmfj:.*|image: azacr1.azurecr.io/witwijmfj:${NEW_TAG}|" "$FILE"
+          git config user.name  "witwijmfj-ci"
+          git config user.email "ci@whereintheworldisjoejohnson.com"
+          git add "$FILE"
+          if git diff --staged --quiet; then echo "No image tag change"; exit 0; fi
+          git commit -m "witwijmfj: bump image to ${NEW_TAG}"
+          git push
