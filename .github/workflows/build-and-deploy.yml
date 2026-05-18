@@ -66,10 +66,12 @@ jobs:
           NEW_TAG: ${{ needs.build.outputs.tag }}
         run: |
           FILE=apps/witwijmfj/deployment.yaml
-          sed -i "s|image: azacr1.azurecr.io/witwijmfj:.*|image: azacr1.azurecr.io/witwijmfj:${NEW_TAG}|" "$FILE"
+          # Image stays at :latest — bump a pod-template annotation to force Argo CD
+          # to recreate pods, which pulls the freshly-pushed :latest image.
+          sed -i "s|build-sha: \".*\"|build-sha: \"${NEW_TAG}\"|" "$FILE"
           git config user.name  "witwijmfj-ci"
           git config user.email "ci@whereintheworldisjoejohnson.com"
           git add "$FILE"
-          if git diff --staged --quiet; then echo "No image tag change"; exit 0; fi
-          git commit -m "witwijmfj: bump image to ${NEW_TAG}"
+          if git diff --staged --quiet; then echo "No build-sha change"; exit 0; fi
+          git commit -m "witwijmfj: rolled to build ${NEW_TAG}"
           git push
