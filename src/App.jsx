@@ -85,7 +85,7 @@ const App = () => {
       >
         &copy; {new Date().getFullYear()}, JMFJ —{' '}
         <a
-          href="https://github.com/hikarukujo/witwijmfj"
+          href="https://github.com/hikarukujo/whereintheworldisjoejohnson-com"
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: '#61dafb' }}
