@@ -1,4 +1,5 @@
 import { Router } from 'express';
+// cycletls has a phantom dep on form-data — we declare it directly in package.json.
 import initCycleTLS from 'cycletls';
 import { coarsen } from '../lib/privacy.js';
 
